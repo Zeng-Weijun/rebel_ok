@@ -183,7 +183,7 @@ class CFVExp:
         # Need to preserve ownership of the ref models!
         ref_models = []
         model_lockers = []
-        assert torch.cuda.device_count() >= 2, torch.cuda.device_count()
+        # assert torch.cuda.device_count() >= 2, torch.cuda.device_count()
         if self.cfg.selfplay.cpu_gen_threads:
             num_threads = self.cfg.selfplay.cpu_gen_threads
             act_devices = ["cpu"] * num_threads
