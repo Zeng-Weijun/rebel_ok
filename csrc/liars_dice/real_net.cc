@@ -128,7 +128,7 @@ std::shared_ptr<IValueNet> create_zero_net(int output_size, bool verbose) {
 }
 
 std::shared_ptr<IValueNet> create_torchscript_net(const std::string& path) {
-  return std::make_shared<TorchScriptNet>(path, "cuda");
+  return std::make_shared<TorchScriptNet>(path, "cpu");
 }
 std::shared_ptr<IValueNet> create_torchscript_net(const std::string& path,
                                                   const std::string& device) {

@@ -107,14 +107,16 @@ def log_git_status():
             logging.info("No diff in the working copy")
 
 
+# def _get_all_runing_job_ids(user_only: bool = False) -> FrozenSet[str]:
+#     cmd = ["squeue", "-r", "-h", "-o", "%i"]
+#     if user_only:
+#         cmd.extend(["-u", os.environ["USER"]])
+#     output = subprocess.check_output(cmd)
+#     job_ids = output.decode("utf8").split()
+#     return frozenset(job_ids)
 def _get_all_runing_job_ids(user_only: bool = False) -> FrozenSet[str]:
-    cmd = ["squeue", "-r", "-h", "-o", "%i"]
-    if user_only:
-        cmd.extend(["-u", os.environ["USER"]])
-    output = subprocess.check_output(cmd)
-    job_ids = output.decode("utf8").split()
-    return frozenset(job_ids)
-
+    # 完全删除原有逻辑，直接返回空集合
+    return frozenset()
 
 def get_all_runing_job_ids() -> FrozenSet[str]:
     global _SLURM_CACHE

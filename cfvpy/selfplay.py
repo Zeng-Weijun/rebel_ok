@@ -53,7 +53,8 @@ class CFVExp:
     def __init__(self, cfg):
 
         self.cfg = cfg
-        self.device = cfg.device or "cuda"
+        self.device = "cpu"
+        # self.device = cfg.device or "cuda"
         ckpt_path = "."
         if heyhi.is_on_slurm():
             self.rank = int(os.environ["SLURM_PROCID"])
@@ -284,7 +285,7 @@ class CFVExp:
 
         if self.cfg.benchmark_data_gen:
             # Benchmark generation speed and exit.
-            time.sleep(self.cfg.benchmark_data_gen)
+            time.sleep(self.cfg.benchmark_data_gen / 10)
             context.terminate()
             size = replay.num_add()
             logging.info(
@@ -324,7 +325,7 @@ class CFVExp:
                     policy_replay.size(),
                     burn_in_frames,
                 )
-            time.sleep(30)
+            time.sleep(3)
 
         def compute_gen_bps():
             return (
@@ -402,7 +403,7 @@ class CFVExp:
                         train_size,
                         epoch + 1,
                     )
-                    time.sleep(60)
+                    time.sleep(6)
             assert self.cfg.replay.use_priority is False, "Not supported"
 
             value_loss = policy_loss = 0  # For progress bar.
@@ -478,7 +479,7 @@ class CFVExp:
                     break
             if self.cfg.fake_training:
                 # Fake training epoch takes a minute.
-                time.sleep(60)
+                time.sleep(6)
 
             if len(train_loader) > 0:
                 metrics["bps/train"] = len(train_loader) / (

@@ -1,0 +1,94 @@
+diff --git a/cfvpy/selfplay.py b/cfvpy/selfplay.py
+index d1143d1..0fbcb8d 100644
+--- a/cfvpy/selfplay.py
++++ b/cfvpy/selfplay.py
+@@ -53,7 +53,8 @@ class CFVExp:
+     def __init__(self, cfg):
+ 
+         self.cfg = cfg
+-        self.device = cfg.device or "cuda"
++        self.device = "cpu"
++        # self.device = cfg.device or "cuda"
+         ckpt_path = "."
+         if heyhi.is_on_slurm():
+             self.rank = int(os.environ["SLURM_PROCID"])
+@@ -284,7 +285,7 @@ class CFVExp:
+ 
+         if self.cfg.benchmark_data_gen:
+             # Benchmark generation speed and exit.
+-            time.sleep(self.cfg.benchmark_data_gen)
++            time.sleep(self.cfg.benchmark_data_gen / 10)
+             context.terminate()
+             size = replay.num_add()
+             logging.info(
+@@ -324,7 +325,7 @@ class CFVExp:
+                     policy_replay.size(),
+                     burn_in_frames,
+                 )
+-            time.sleep(30)
++            time.sleep(3)
+ 
+         def compute_gen_bps():
+             return (
+@@ -402,7 +403,7 @@ class CFVExp:
+                         train_size,
+                         epoch + 1,
+                     )
+-                    time.sleep(60)
++                    time.sleep(6)
+             assert self.cfg.replay.use_priority is False, "Not supported"
+ 
+             value_loss = policy_loss = 0  # For progress bar.
+@@ -478,7 +479,7 @@ class CFVExp:
+                     break
+             if self.cfg.fake_training:
+                 # Fake training epoch takes a minute.
+-                time.sleep(60)
++                time.sleep(6)
+ 
+             if len(train_loader) > 0:
+                 metrics["bps/train"] = len(train_loader) / (
+@@ -560,7 +561,7 @@ class CFVExp:
+                         mse_net_traverse,
+                         mse_fp_traverse,
+                     ) = cfvpy.rela.compute_stats_with_net(
+-                        create_mdp_config(self.cfg.env), str(bin_path)
++                        create_mdp_config(self.cfg.env), str(bin_path), self.device
+                     )
+                     logging.info(
+                         "Exploitability to leaf (epoch=%d): %.2f", epoch, exploitability
+diff --git a/conf/c02_selfplay/liars_sp.yaml b/conf/c02_selfplay/liars_sp.yaml
+index aa99f4c..2c2cc3a 100644
+--- a/conf/c02_selfplay/liars_sp.yaml
++++ b/conf/c02_selfplay/liars_sp.yaml
+@@ -23,8 +23,8 @@ selfplay:
+ train_gen_ratio: 4
+ task: selfplay
+ loss: huber
+-min_buffer_to_send: 2500
+-max_epochs: 10000
++min_buffer_to_send: 250
++max_epochs: 100
+ model:
+   name: Net2
+   kwargs:
+@@ -33,10 +33,10 @@ model:
+     use_layer_norm: true
+ create_validation_set_every: 100
+ data:
+-  train_epoch_size: 25600
+-  train_batch_size: 512
++  train_epoch_size: 256
++  train_batch_size: 8
+ replay:
+-  capacity: 2000000
++  capacity: 2000
+   alpha: 1.0
+   beta: 1.0
+   prefetch: 8
+diff --git a/third_party/pybind11 b/third_party/pybind11
+--- a/third_party/pybind11
++++ b/third_party/pybind11
+@@ -1 +1 @@
+-Subproject commit a1b71df137e015d44f7e31f7b6d4807253fb7871
++Subproject commit a1b71df137e015d44f7e31f7b6d4807253fb7871-dirty

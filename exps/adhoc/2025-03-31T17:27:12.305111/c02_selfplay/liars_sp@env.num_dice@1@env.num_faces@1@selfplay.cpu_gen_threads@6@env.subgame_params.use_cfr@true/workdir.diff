@@ -1,0 +1,6 @@
+diff --git a/third_party/pybind11 b/third_party/pybind11
+--- a/third_party/pybind11
++++ b/third_party/pybind11
+@@ -1 +1 @@
+-Subproject commit a1b71df137e015d44f7e31f7b6d4807253fb7871
++Subproject commit a1b71df137e015d44f7e31f7b6d4807253fb7871-dirty
