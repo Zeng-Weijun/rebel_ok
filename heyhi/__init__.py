@@ -272,31 +272,27 @@ def handle_dst(
     force_override_exp_id: Optional[str] = None,
     force_override_tag: Optional[str] = None,
 ) -> Tuple[ExperimentDir, bool]:
-    """Creates/recreates a ExperimentDir and checks whether an action is needed.
+    """创建/重新创建 ExperimentDir 并检查是否需要执行操作。
 
-    The logic of the function is the following:
-        1. Create base exp_id from config_path and overrides.
-        1a. If force_override_tag is set, it will be used instead of
-            automatically generated overrides string.
-        1b. If force_override_exp_id is given, it will be used instead of the
-            config path part.
-        2. If running in adhoc mode prepend 'adhoc/<date>' to the exp_id go
-            get unique exp_id. Otherwise, prepend 'p/' (permanent).
-        3. Get status of the job in the folder: NOT_STARTED, RUNNING, DONE,
-            DEAD.
-        4. Depending on the mode maybe wipe folder and kill the job and maybe
-            set need_run flag.
+    该函数的逻辑如下：
+        1. 从 config_path 和 overrides 创建基础 exp_id。
+        1a. 如果设置了 force_override_tag，它将替代自动生成的 overrides 字符串。
+        1b. 如果提供了 force_override_exp_id，它将替代配置路径部分。
+        2. 如果在 adhoc 模式下运行，在 exp_id 前添加 'adhoc/<date>' 以获取唯一的 exp_id。
+           否则，添加 'p/'（永久）。
+        3. 获取文件夹中作业的状态：NOT_STARTED（未开始）、RUNNING（运行中）、DONE（完成）、
+           DEAD（终止）。
+        4. 根据模式可能需要清除文件夹并终止作业，以及设置 need_run 标志。
 
-    If mode is:
-        - gentle_start, set need_run iff the job is NOT_STARTED.
-        - start_restart, set need_run iff the job is NOT_STARTED or
-          DEAD. If job is dead, wipe the experiment dir.
-        - start_continue, set need_run iff the job is NOT_STARTED or
-          DEAD.
-        - restart, set need_run to True, and kill the job if running.
-        - dryrun, set need_run to False.
+    如果模式是：
+        - gentle_start：仅当作业为 NOT_STARTED 时设置 need_run。
+        - start_restart：当作业为 NOT_STARTED 或 DEAD 时设置 need_run。
+          如果作业已终止，清除实验目录。
+        - start_continue：当作业为 NOT_STARTED 或 DEAD 时设置 need_run。
+        - restart：将 need_run 设置为 True，如果作业正在运行则终止它。
+        - dryrun：将 need_run 设置为 False。
 
-    Returns a pair (ExperimentDir, need_run).
+    返回一个元组 (ExperimentDir, need_run)。
     """
     assert config_path.exists(), config_path
     *_, folder_name, config_name = str(config_path.absolute()).split("/")
@@ -409,57 +405,61 @@ def _build_slurm_executor(exp_handle, cfg):
 
 
 def run_with_config(
-    task_function: Callable,
-    exp_handle: ExperimentDir,
-    config_path: pathlib.Path,
-    overrides: Sequence[str],
-    config_search_paths: Optional[Sequence[pathlib.Path]] = None,
+    task_function: Callable,  # 任务函数
+    exp_handle: ExperimentDir,  # 实验目录句柄
+    config_path: pathlib.Path,  # 配置文件路径
+    overrides: Sequence[str],  # 覆盖参数列表
+    config_search_paths: Optional[Sequence[pathlib.Path]] = None,  # 可选的配置搜索路径
 ) -> None:
-    setup_logging()
-    del config_search_paths  # Hardcoded in hydra for now.
+    setup_logging()  # 设置日志
+    del config_search_paths  # 暂时硬编码在hydra中
+    # 构建hydra参数列表
     hydra_args = list(overrides) + [
-        f"hydra.run.dir={exp_handle.exp_path}",
-        f"job_id={exp_handle.exp_id}",
-        # Remove hydra defautl stuff.
+        f"hydra.run.dir={exp_handle.exp_path}",  # 设置运行目录
+        f"job_id={exp_handle.exp_id}",  # 设置作业ID
+        # 移除hydra默认配置
         "hydra.hydra_logging=null",
-        "hydra.job_logging=null",
+        "hydra.job_logging=null", 
         "hydra.sweep=null",
         "hydra.sweeper=null",
     ]
-    logging.info("Passing the following args to hydra: %s", hydra_args)
-    calling_file = "train.py"
-    abs_base_dir = os.path.realpath(os.path.dirname(calling_file))
-    hydra_config_path = str(config_path.resolve())
+    logging.info("Passing the following args to hydra: %s", hydra_args)  # 记录传递给hydra的参数
+    calling_file = "train.py"  # 调用文件名
+    abs_base_dir = os.path.realpath(os.path.dirname(calling_file))  # 获取绝对基础目录
+    hydra_config_path = str(config_path.resolve())  # 解析配置文件路径
+    # 验证配置文件路径是否在基础目录下
     assert hydra_config_path.startswith(abs_base_dir + "/"), (
         hydra_config_path,
         abs_base_dir,
     )
-    hydra_config_path = hydra_config_path[len(abs_base_dir) + 1 :]
+    hydra_config_path = hydra_config_path[len(abs_base_dir) + 1 :]  # 获取相对路径
+    # 创建hydra对象
     hydra_obj = hydra.Hydra(
-        calling_file="run.py",
-        calling_module=None,
-        config_path=hydra_config_path,
-        task_function=task_function,
-        verbose="",
-        strict=False,
+        calling_file="run.py",  # 调用文件
+        calling_module=None,  # 调用模块
+        config_path=hydra_config_path,  # 配置路径
+        task_function=task_function,  # 任务函数
+        verbose="",  # 详细程度
+        strict=False,  # 是否严格模式
     )
-    cfg = hydra_obj._load_config(copy.deepcopy(hydra_args))
-    use_slurm = False
-    if cfg.launcher is not None:
-        assert cfg.launcher.driver in ("slurm", "local"), cfg.launcher
-        use_slurm = cfg.launcher.driver == "slurm"
-    if use_slurm and not is_on_slurm():
-        logging.info("Config:\n%s", cfg.pretty())
-        executor = _build_slurm_executor(exp_handle, cfg.launcher)
-        job = executor.submit(hydra_obj.run, overrides=hydra_args)
-        exp_handle.save_job_id(job.job_id)
-        logging.info("Submitted job %s", job.job_id)
+    cfg = hydra_obj._load_config(copy.deepcopy(hydra_args))  # 加载配置
+    use_slurm = False  # 是否使用slurm
+    if cfg.launcher is not None:  # 如果配置了启动器
+        assert cfg.launcher.driver in ("slurm", "local"), cfg.launcher  # 验证启动器类型
+        use_slurm = cfg.launcher.driver == "slurm"  # 设置是否使用slurm
+    if use_slurm and not is_on_slurm():  # 如果需要使用slurm且不在slurm环境中
+        logging.info("Config:\n%s", cfg.pretty())  # 记录配置信息
+        executor = _build_slurm_executor(exp_handle, cfg.launcher)  # 构建slurm执行器
+        job = executor.submit(hydra_obj.run, overrides=hydra_args)  # 提交作业
+        exp_handle.save_job_id(job.job_id)  # 保存作业ID
+        logging.info("Submitted job %s", job.job_id)  # 记录提交的作业ID
+        # 记录日志文件路径
         logging.info(
             "stdout:\n\ttail -F %s/%s_0_log.out", exp_handle.slurm_path, job.job_id
         )
         logging.info(
             "stderr:\n\ttail -F %s/%s_0_log.err", exp_handle.slurm_path, job.job_id
         )
-    else:
-        exp_handle.save_job_id(LOCAL_JOB_ID)
-        hydra_obj.run(overrides=copy.deepcopy(hydra_args))
+    else:  # 如果不需要使用slurm或已在slurm环境中
+        exp_handle.save_job_id(LOCAL_JOB_ID)  # 保存本地作业ID
+        hydra_obj.run(overrides=copy.deepcopy(hydra_args))  # 直接运行任务

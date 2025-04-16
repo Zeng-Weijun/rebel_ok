@@ -93,7 +93,8 @@ void compute_strategy_recursive_to_leaf(
   // - for non-termial leaves of the solver tree, do a recursive call.
   std::deque<std::tuple<int, int, Pair<std::vector<double>>>> traversal_queue;
   traversal_queue.emplace_back(node_id, 0, beliefs);
-
+  // 调试信息：显示是否使用采样策略
+  std::cout << "使用采样策略: " << (use_samplig_strategy ? "是" : "否") << std::endl;
   const TreeStrategy& partial_strategy = use_samplig_strategy
                                              ? solver->get_sampling_strategy()
                                              : solver->get_strategy();
@@ -145,7 +146,7 @@ TreeStrategy compute_strategy_with_solver(
 
 TreeStrategy compute_strategy_with_solver_to_leaf(
     const Game& game, const SubgameSolverBuilder& solver_builder,
-    bool use_samplig_strategy = false) {
+    bool use_samplig_strategy = true) {
   const Tree tree = unroll_tree(game);
   TreeStrategy strategy(tree.size());
   const auto beliefs = get_initial_beliefs(game);
@@ -190,13 +191,15 @@ void RlRunner::sample_state(const ISubgameSolver* solver) {
 }
 
 void RlRunner::sample_state_to_leaf(const ISubgameSolver* solver) {
+  // std::cout << "采样到了叶子节点！ 《《《《《《《《《《《《《《《《《《《《《《《" << std::endl ;
   const auto& tree = solver->get_tree();
   // List of (node, action) pairs.
   std::vector<std::pair<int, Action>> path;
   {
     int node_id = 0;
     const auto br_sampler = std::uniform_int_distribution<>(0, 1)(gen_);
-    const auto& strategy = solver->get_sampling_strategy();
+    // const auto& strategy = solver->get_sampling_strategy();
+    const auto& strategy = solver->get_strategy();
     auto sampling_beliefs = beliefs_;
     while (tree[node_id].num_children()) {
       const auto eps = std::uniform_real_distribution<float>(0, 1)(gen_);

@@ -1,17 +1,3 @@
-// Copyright (c) Facebook, Inc. and its affiliates.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 #include "subgame_solving.h"
 
 #include <algorithm>
@@ -34,6 +20,7 @@ namespace {
 
 template <class T>
 void init_nd(int a, int b, T value, std::vector<std::vector<T>>* array) {
+  // std::cout << "init_nd" << std::endl ; 
   array->resize(a);
   for (int i = 0; i < a; ++i) {
     (*array)[i].assign(b, value);
@@ -43,6 +30,7 @@ void init_nd(int a, int b, T value, std::vector<std::vector<T>>* array) {
 template <class T>
 void init_nd(int a, int b, int c, T value,
              std::vector<std::vector<std::vector<T>>>* array) {
+  // std::cout << "init_nd" << std::endl ; 
   array->resize(a);
   for (auto& subarray : *array) {
     init_nd(b, c, value, &subarray);
@@ -55,6 +43,7 @@ void compute_reach_probabilities(
     const Tree& tree, const TreeStrategy& strategy,
     const std::vector<double>& initial_beliefs, int player,
     std::vector<std::vector<double>>* reach_probabilities) {
+  // std::cout << "compute_reach_probabilities" << std::endl ; 
   const auto num_hands = initial_beliefs.size();
   for (size_t node_id = 0; node_id < tree.size(); ++node_id) {
     if (node_id == 0) {
@@ -80,6 +69,7 @@ void compute_reach_probabilities(
 std::vector<double> compute_expected_terminal_values(
     const Game& game, Action last_bid, bool inverse,
     std::vector<double>& op_reach_probabilities) {
+      // std::cout << "compute_expected_terminal_values" << std::endl ; 
   auto values = compute_win_probability(game, last_bid, op_reach_probabilities);
   // Need to convert the probabilities to the payoff the traverser. Note,
   // the probabilities are true probabilities iff op_beliefs sum to 1.
@@ -98,6 +88,7 @@ std::vector<double> compute_expected_terminal_values(
 }
 
 size_t get_query_size(const Game& game) {
+  // std::cout << "get_query_size" << std::endl ; 
   return 1 + 1 + game.num_actions() + game.num_hands() * 2;
 }
 
@@ -105,6 +96,7 @@ int64_t write_query_to(const Game& game, int traverser,
                        const PartialPublicState& state,
                        const std::vector<double>& reaches1,
                        const std::vector<double>& reaches2, float* buffer) {
+  // std::cout << "write_query_to" << std::endl ; 
   int64_t write_index = 0;
   buffer[write_index++] = static_cast<float>(state.player_id);
   buffer[write_index++] = static_cast<float>(traverser);
@@ -125,6 +117,7 @@ int64_t write_query_to(const Game& game, int traverser,
 TreeStrategy get_uniform_reach_weigted_strategy(
     const Game& game, const Tree& tree,
     const Pair<std::vector<double>>& initial_beliefs) {
+  // std::cout << "get_uniform_reach_weigted_strategy" << std::endl ; 
   TreeStrategy strategy = get_uniform_strategy(game, tree);
   std::vector<std::vector<double>> reach_probabilities_buffer;
   init_nd(tree.size(), game.num_hands(), 0.0, &reach_probabilities_buffer);
@@ -174,6 +167,7 @@ struct PartialTreeTraverser {
         query_size(get_query_size(game)),
         output_size(game.num_hands()),
         value_net(value_net) {
+      // std::cout << "构造 PartialTreeTraverser" << std::endl ; 
     if (value_net == nullptr) {
       // Check all leaf nodes are final.
       for (auto& node : tree) {
@@ -210,6 +204,7 @@ struct PartialTreeTraverser {
   // Write a single query to the buffer. The query corresponds to the node as
   // seen by tranverser.
   void write_query(size_t node_id, int traverser, float* buffer) {
+    // std::cout << "write_query" << std::endl ; 
     const auto& state = tree[node_id].state;
     auto write_index =
         write_query_to(game, traverser, state, reach_probabilities[0][node_id],
@@ -218,6 +213,7 @@ struct PartialTreeTraverser {
   }
 
   void add_training_example(int traverser, const std::vector<double>& values) {
+    // std::cout << "add_training_example" << std::endl ; 
     auto query_tensor = torch::zeros({1, query_size});
     auto value_tensor = torch::zeros({1, output_size});
     write_query(/*node_id=*/0, traverser, query_tensor.data_ptr<float>());
@@ -228,6 +224,7 @@ struct PartialTreeTraverser {
   void precompute_reaches(const TreeStrategy& strategy,
                           const std::vector<double>& initial_beliefs,
                           int player) {
+    // std::cout << "precompute_reaches" << std::endl ; 
     liars_dice::compute_reach_probabilities(
         tree, strategy, initial_beliefs, player, &reach_probabilities[player]);
   }
@@ -236,6 +233,7 @@ struct PartialTreeTraverser {
   // non-terminals value net is called. Reaches for both players must be
   // precomputed.
   void precompute_all_leaf_values(int traverser) {
+    // std::cout << "precompute_all_leaf_values" << std::endl ; 
     query_value_net(traverser);
     populate_leaf_values();
     precompute_terminal_leaves_values(traverser);
@@ -251,6 +249,7 @@ struct PartialTreeTraverser {
   // Query value net, weight by oponent reaches, and save result as
   // leaf_values tensor.
   void query_value_net(int traverser) {
+    // std::cout << "query_value_net" << std::endl ; 
     if (pseudo_leaves_indices.empty()) return;
     assert(value_net != nullptr);
     const int64_t N = pseudo_leaves_indices.size();
@@ -271,6 +270,7 @@ struct PartialTreeTraverser {
   // Copy results from leaf_values to corresponding nodes in
   // traverser_values.
   void populate_leaf_values() {
+    // std::cout << "populate_leaf_value" << std::endl ; 
     if (pseudo_leaves_indices.empty()) return;
     auto result_acc = leaf_values.accessor<float, 2>();
     for (size_t row = 0; row < pseudo_leaves_indices.size(); ++row) {
@@ -283,6 +283,7 @@ struct PartialTreeTraverser {
 
   // Populate traverser_values for terminal nodes.
   void precompute_terminal_leaves_values(int traverser) {
+    // std::cout << "precompute_terminal_leaves_values" << std::endl ; 
     for (auto node_id : terminal_indices) {
       const auto last_bid = tree[tree[node_id].parent].state.last_bid;
       traverser_values[node_id] = compute_expected_terminal_values(
@@ -306,6 +307,7 @@ struct BRSolver : public PartialTreeTraverser {
   BRSolver(const Game& game, const std::vector<UnrolledTreeNode>& tree,
            std::shared_ptr<IValueNet> value_net)
       : PartialTreeTraverser(game, tree, value_net) {
+    // std::cout << "构建BRSolver" <<std::endl ; 
     init_nd(tree.size(), game.num_hands(), game.num_actions(), 0.0,
             &br_strategies);
   }
@@ -317,6 +319,7 @@ struct BRSolver : public PartialTreeTraverser {
       int traverser, const TreeStrategy& oponent_strategy,
       const Pair<std::vector<double>>& initial_beliefs,
       std::vector<double>* values) {
+        // std::cout << "compute_br" << std::endl ; 
     precompute_reaches(oponent_strategy, initial_beliefs);
     precompute_all_leaf_values(traverser);
     for (size_t public_node = tree.size(); public_node-- > 0;) {
@@ -514,6 +517,7 @@ struct CFR : public ISubgameSolver, private PartialTreeTraverser {
         num_steps{0, 0},
         // TODO(akhti): normalize before using!
         initial_beliefs(beliefs) {
+    // std::cout << "构建CFR" << std::endl;
     // Initial strategies are uniform over feasible actions.
     average_strategies = get_uniform_strategy(game, tree);
     last_strategies = average_strategies;
@@ -529,13 +533,15 @@ struct CFR : public ISubgameSolver, private PartialTreeTraverser {
       const SubgameSolvingParams& params)
       : CFR(game, unroll_tree(game, root, params.max_depth), value_net, beliefs,
             params) {
-    assert(params.use_cfr);
+    // assert(params.use_cfr);
+    // std::cout << "params.linear_update : " << params.linear_update << " params.dcfr : " << params.dcfr << std::endl ; 
     assert(!params.linear_update || !params.dcfr);
   }
 
   // Adds regrets for the last_strategies to regrets.
   // Sets traverser_values[node] to the EVs of last_strategies for traverser.
   void update_regrets(int traverser) {
+    // std::cout << "update_regrets" << std::endl ;
     precompute_reaches(last_strategies, initial_beliefs);
     precompute_all_leaf_values(traverser);
 
@@ -575,6 +581,7 @@ struct CFR : public ISubgameSolver, private PartialTreeTraverser {
   }
 
   void step(int traverser) override {
+    // std::cout << "step : " << std::endl ; 
     update_regrets(traverser);
     root_values[traverser] = traverser_values[0];
     {
@@ -599,6 +606,7 @@ struct CFR : public ISubgameSolver, private PartialTreeTraverser {
         pos_discount = neg_discount = strat_discount =
             num_strategies / (num_strategies + 1);
       } else if (params.dcfr) {
+        // std::cout << "D-CFR" << std::endl ; 
         if (params.dcfr_alpha >= 5) {
           pos_discount = 1;
         } else {
@@ -664,18 +672,22 @@ struct CFR : public ISubgameSolver, private PartialTreeTraverser {
   }
 
   void multistep() override {
+    // std::cout << "multistep" << std::endl; 
     for (int iter = 0; iter < params.num_iters; ++iter) {
+      // std::cout << "iter : " << iter << std::endl ; 
       step(iter % 2);
     }
   }
 
   void update_value_network() override {
+    // std::cout << "update_value_network" << std::endl; 
     assert(num_steps[0] > 0 && num_steps[1] > 0);
     add_training_example(0, get_hand_values(0));
     add_training_example(1, get_hand_values(1));
   }
 
   const TreeStrategy& get_strategy() const override {
+    // std::cout << "get_strate" << std::endl ; 
     return average_strategies;
   }
 
@@ -795,6 +807,7 @@ std::unique_ptr<ISubgameSolver> build_solver(
   if (params.use_cfr) {
     return std::make_unique<CFR>(game, root, net, beliefs, params);
   } else {
+    // return None 
     return std::make_unique<FP>(game, root, net, beliefs, params);
   }
 }
@@ -1048,5 +1061,4 @@ std::vector<std::vector<double>> compute_immediate_regrets(
   }
   return immediate_regrets;
 }
-
 }  // namespace liars_dice

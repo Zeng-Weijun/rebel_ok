@@ -57,19 +57,6 @@ def run(
     force_override_exp_id: Optional[str] = None,
     force_override_tag: Optional[str] = None,
 ) -> heyhi.ExperimentDir:
-    """Computes the task locally of remotely if neeeded in the mode.
-
-    The function checks the exp_handle first to detect whether the experiment
-    is running, dead, or dead. Depending on that and the mode the function
-    may kill the job, wipe the exp_handle, start a computation or do none of
-    this.
-
-    See heyhi.handle_dst for how the modes are handled.
-
-    The computation may run locally or on the cluster depending on the
-    launcher config section. In both ways main(cfg) with me executed with the
-    final config with all overrides and substitutions.
-    """
     heyhi.setup_logging()
     logging.info("Config: %s", cfg)
     logging.info("Overrides: %s", overrides)

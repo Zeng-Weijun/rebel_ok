@@ -43,18 +43,18 @@ struct TreeStrategyStats;
 struct SubgameSolvingParams {
   // Common FP-CFR params.
   int num_iters = 10;
-  int max_depth = 2;
+  int max_depth = 15;
   bool linear_update = false;
-  bool use_cfr = false;  // Whetehr to use FP or CFR.
+  bool use_cfr = true ;  // Whetehr to use FP or CFR.
 
   // FP only params.
   bool optimistic = false;
 
   // CFR-only.
-  bool dcfr = false;
-  double dcfr_alpha = 0;
+  bool dcfr = true;
+  double dcfr_alpha = 1.5;
   double dcfr_beta = 0;
-  double dcfr_gamma = 0;
+  double dcfr_gamma = 2;
 };
 
 class ISubgameSolver {
