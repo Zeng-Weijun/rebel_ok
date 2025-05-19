@@ -94,7 +94,7 @@ void compute_strategy_recursive_to_leaf(
   std::deque<std::tuple<int, int, Pair<std::vector<double>>>> traversal_queue;
   traversal_queue.emplace_back(node_id, 0, beliefs);
   // 调试信息：显示是否使用采样策略
-  std::cout << "使用采样策略: " << (use_samplig_strategy ? "是" : "否") << std::endl;
+  // std::cout << "使用采样策略: " << (use_samplig_strategy ? "是" : "否") << std::endl;
   const TreeStrategy& partial_strategy = use_samplig_strategy
                                              ? solver->get_sampling_strategy()
                                              : solver->get_strategy();
@@ -143,10 +143,9 @@ TreeStrategy compute_strategy_with_solver(
                              &strategy);
   return strategy;
 }
-
 TreeStrategy compute_strategy_with_solver_to_leaf(
     const Game& game, const SubgameSolverBuilder& solver_builder,
-    bool use_samplig_strategy = true) {
+    bool use_samplig_strategy = false) {
   const Tree tree = unroll_tree(game);
   TreeStrategy strategy(tree.size());
   const auto beliefs = get_initial_beliefs(game);
@@ -154,34 +153,43 @@ TreeStrategy compute_strategy_with_solver_to_leaf(
                                      solver_builder, use_samplig_strategy,
                                      &strategy);
   return strategy;
+  // TreeStrategy test_strategy(tree.size());
+  // return test_strategy ; 
 }
 
 }  // namespace
-
 void RlRunner::step() {
   state_ = game_.get_initial_state();
   beliefs_[0].assign(game_.num_hands(), 1.0 / game_.num_hands());
   beliefs_[1].assign(game_.num_hands(), 1.0 / game_.num_hands());
-  // std::cout << "state: " << game_.state_to_string(state_) << "\n";
   while (!game_.is_terminal(state_)) {
     auto solver = build_solver(game_, state_, beliefs_, subgame_params_, net_);
 
+    // const int real_iters = std::uniform_int_distribution<>(54 , 74)(gen_);
     const int act_iteration =
         std::uniform_int_distribution<>(0, subgame_params_.num_iters)(gen_);
+    // const int act_iteration =
+    //   std::uniform_int_distribution<>(0, real_iters)(gen_);   
     for (int iter = 0; iter < act_iteration; ++iter) {
       solver->step(/*traverser=*/iter % 2);
     }
     // Sample a new state to explore.
     sample_state(solver.get());
     for (int iter = act_iteration; iter < subgame_params_.num_iters; ++iter) {
+    // for (int iter = act_iteration; iter < real_iters; ++iter) {
       solver->step(/*traverser=*/iter % 2);
     }
+//大约每隔500次输出一个act_iteration
+    // if (std::uniform_int_distribution<>(0, 500)(gen_) == 0) {
+    //   std::cout << "采样迭代次数： " << subgame_params_.num_iters << std::endl;
+    // }
+    // std::cout << "act_iteration : " << act_iteration << std::endl ;
+
 
     // Collect the values at the top of the tree.
     solver->update_value_network();
   }
 }
-
 void RlRunner::sample_state(const ISubgameSolver* solver) {
   if (sample_leaf_) {
     sample_state_to_leaf(solver);
@@ -191,15 +199,16 @@ void RlRunner::sample_state(const ISubgameSolver* solver) {
 }
 
 void RlRunner::sample_state_to_leaf(const ISubgameSolver* solver) {
-  // std::cout << "采样到了叶子节点！ 《《《《《《《《《《《《《《《《《《《《《《《" << std::endl ;
   const auto& tree = solver->get_tree();
-  // List of (node, action) pairs.
   std::vector<std::pair<int, Action>> path;
   {
     int node_id = 0;
     const auto br_sampler = std::uniform_int_distribution<>(0, 1)(gen_);
-    // const auto& strategy = solver->get_sampling_strategy();
-    const auto& strategy = solver->get_strategy();
+    // 
+    // 采样使用last策略
+    //
+    const auto& strategy = solver->get_sampling_strategy();
+    // const auto& strategy = solver->get_strategy();
     auto sampling_beliefs = beliefs_;
     while (tree[node_id].num_children()) {
       const auto eps = std::uniform_real_distribution<float>(0, 1)(gen_);
@@ -231,15 +240,10 @@ void RlRunner::sample_state_to_leaf(const ISubgameSolver* solver) {
       node_id = tree[node_id].children_begin + action - action_begin;
     }
   }
-
-  // We do another pass over the path to compute beliefs accroding to
-  // `get_belief_propogation_strategy` that could differ from the sampling
-  // strategy.
   for (auto [node_id, action] : path) {
     const auto action_begin = game_.get_bid_range(state_).first;
     const auto& policy = solver->get_belief_propogation_strategy()[node_id];
     for (int hand = 0; hand < game_.num_hands(); ++hand) {
-      // Assuming that the policy has zeros outside of the range.
       beliefs_[state_.player_id][hand] *= policy[hand][action];
     }
     normalize_beliefs_inplace(beliefs_[state_.player_id]);

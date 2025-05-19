@@ -100,6 +100,7 @@ class ConcurrentQueue {
   // but they are NOT thread-safe against each other
 
   void blockPop(int blockSize) {
+    std::cout << "blockPop: ->>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " << blockSize << "<<<<<<<<<<<<<<<<<<<<<<<<<<<-" << std::endl;
     double diff = 0;
     int head = head_;
     for (int i = 0; i < blockSize; ++i) {

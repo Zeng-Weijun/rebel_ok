@@ -1,5 +1,0 @@
-- env.num_dice=1
-- env.num_faces=6
-- env.subgame_params.use_cfr=true
-- selfplay.cpu_gen_threads=16
-- job_id=adhoc/2025-04-06T16:51:06.498737/c02_selfplay/liars_sp@env.num_dice@1@env.num_faces@6@selfplay.cpu_gen_threads@16@env.subgame_params.use_cfr@true

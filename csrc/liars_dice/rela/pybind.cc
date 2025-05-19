@@ -47,33 +47,41 @@ float compute_exploitability(liars_dice::RecursiveSolvingParams params,
 // 使用神经网络计算统计信息
 auto compute_stats_with_net(liars_dice::RecursiveSolvingParams params,
                             const std::string& model_path) {
+                              // const std::string& model_path ,bool test=false) {
   py::gil_scoped_release release;  // 释放GIL锁
+  std::cout << "params.num_iters = " << params.subgame_params.num_iters
+            << std::endl;
+
+  // params.subgame_params.num_iters = 1024;
   liars_dice::Game game(params.num_dice, params.num_faces);  // 创建游戏实例
   std::shared_ptr<IValueNet> net =
       liars_dice::create_torchscript_net(model_path);  // 加载神经网络
   const auto net_strategy =
       compute_strategy_recursive_to_leaf(game, params.subgame_params, net);  // 计算策略
   liars_dice::print_strategy(game, unroll_tree(game), net_strategy);  // 打印策略
+// // 创建随机策略
+// std::vector<float> random_strategy(game.num_actions(), 1.0f / game.num_actions());
   const float explotability =
       liars_dice::compute_exploitability(game, net_strategy);  // 计算可剥削性
 
-  auto full_params = params.subgame_params;  // 获取子游戏参数
-  full_params.max_depth = 100000;  // 设置最大深度
-  auto fp = build_solver(game, full_params);  // 构建求解器
-  fp->multistep();  // 多步求解
-  const auto& full_strategy = fp->get_strategy();  // 获取完整策略
+//   auto full_params = params.subgame_params;  // 获取子游戏参数
+//   full_params.max_depth = 100000;  // 设置最大深度
+//   auto fp = build_solver(game, full_params);  // 构建求解器
+//   fp->multistep();  // 多步求解
+//   const auto& full_strategy = fp->get_strategy();  // 获取完整策略
 
-  // 评估网络遍历的MSE
-  const float mse_net_traverse = eval_net(
-      game, net_strategy, full_strategy, params.subgame_params.max_depth,
-      params.subgame_params.num_iters, net, /*traverse_by_net=*/true,
-      /*verbose=*/true);
-  // 评估完整遍历的MSE
-  const float mse_full_traverse = eval_net(
-      game, net_strategy, full_strategy, params.subgame_params.max_depth,
-      params.subgame_params.num_iters, net, /*traverse_by_net=*/false,
-      /*verbose=*/true);
-  return std::make_tuple(explotability, mse_net_traverse, mse_full_traverse);  // 返回结果元组
+//   // 评估网络遍历的MSE
+//   const float mse_net_traverse = eval_net(
+//       game, net_strategy, full_strategy, params.subgame_params.max_depth,
+//       params.subgame_params.num_iters, net, /*traverse_by_net=*/true,
+//       /*verbose=*/true);
+//   // 评估完整遍历的MSE
+//   const float mse_full_traverse = eval_net(
+//       game, net_strategy, full_strategy, params.subgame_params.max_depth,
+//       params.subgame_params.num_iters, net, /*traverse_by_net=*/false,
+//       /*verbose=*/true);
+//   return std::make_tuple(explotability, mse_net_traverse, mse_full_traverse);  // 返回结果元组
+  return std::make_tuple(explotability, 0.0, 0.0);  // 返回结果元组
 }
 
 // 计算可剥削性（不使用神经网络）
@@ -182,8 +190,8 @@ PYBIND11_MODULE(rela, m) {
         py::arg("params"), py::arg("model_path"));
 
   m.def("compute_stats_with_net", &compute_stats_with_net,  // 定义计算统计信息函数
-        py::arg("params"), py::arg("model_path"));
-
+        py::arg("params"), py::arg("model_path"));  // 默认参数test为false
+        // py::arg("params"), py::arg("model_path"), py::arg("test") = false);  // 默认参数test为false
   m.def("create_cfr_thread", &create_cfr_thread,  // 定义创建CFR线程函数
         py::arg("model_locker"), py::arg("replay"), py::arg("cfg"), py::arg("seed"));
 

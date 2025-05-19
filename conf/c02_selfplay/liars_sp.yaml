@@ -6,13 +6,13 @@ decrease_lr_times: 2
 grad_clip: 5.0
 env:
   num_dice: 1
-  num_faces: 2
-  random_action_prob: 0.0
+  num_faces: 5
+  random_action_prob: 0.25
   sample_leaf: true
   subgame_params:
-    num_iters: 1024
+    num_iters: 512
     max_depth: 4
-    linear_update: false
+    linear_update: false 
     dcfr: true
 exploit: true
 selfplay:
@@ -20,22 +20,21 @@ selfplay:
   dump_dataset_every_epochs: 200
   threads_per_gpu: -1
   models_per_gpu: 1
-  cpu_gen_threads: 60
-train_gen_ratio: 4
+  cpu_gen_threads: 14
+train_gen_ratio: 8
 task: selfplay
 loss: huber
-# min_buffer_to_send: 2500
-max_epochs: 210
+max_epochs: 230
 model:
   name: Net2
   kwargs:
     n_hidden: 256
-    n_layers: 5
+    n_layers: 4
     use_layer_norm: true
-create_validation_set_every: 100
+create_validation_set_every: 200
 data:
-  train_epoch_size: 2560
-  train_batch_size: 128
+  train_epoch_size: 4000
+  train_batch_size: 100
 replay:
   capacity: 2000000
   alpha: 1.0

@@ -112,7 +112,7 @@ int64_t write_query_to(const Game& game, int traverser,
                                &buffer[write_index]);
   write_index += reaches2.size();
   return write_index;
-}
+} 
 
 TreeStrategy get_uniform_reach_weigted_strategy(
     const Game& game, const Tree& tree,
@@ -533,7 +533,11 @@ struct CFR : public ISubgameSolver, private PartialTreeTraverser {
       const SubgameSolvingParams& params)
       : CFR(game, unroll_tree(game, root, params.max_depth), value_net, beliefs,
             params) {
-    // assert(params.use_cfr);
+
+    // std::cout << params.num_iters << " " << params.linear_update << " "
+    //           << params.dcfr << std::endl;
+    // assert(params.num_iters == 1024 && params.linear_update == false &&
+    //   params.dcfr == true);
     // std::cout << "params.linear_update : " << params.linear_update << " params.dcfr : " << params.dcfr << std::endl ; 
     assert(!params.linear_update || !params.dcfr);
   }
@@ -672,7 +676,15 @@ struct CFR : public ISubgameSolver, private PartialTreeTraverser {
   }
 
   void multistep() override {
-    // std::cout << "multistep" << std::endl; 
+    // std::random_device rd;
+    // mt19937 gen(time(0));
+    // std::uniform_int_distribution<> dis(0, 50);
+    // int flag = dis(gen);
+    
+    // if (flag == 0) {
+      std::cout << "测试 -》》》》》》》》》》》》》》》》》》num_iters : " << params.num_iters << std::endl ;
+    // }
+    // assert(params.num_iters == 1024);
     for (int iter = 0; iter < params.num_iters; ++iter) {
       // std::cout << "iter : " << iter << std::endl ; 
       step(iter % 2);
@@ -746,7 +758,7 @@ void print_strategy(const Game& game, const Tree& tree,
   assert(tree.size() == strategy.size());
   stream << "Printing strategies per node\n";
   stream.setf(std::ios_base::fixed, std::ios_base::floatfield);
-  const auto old_precision = stream.precision(2);
+  const auto old_precision = stream.precision(8);
   for (size_t node_id = 0; node_id < strategy.size(); ++node_id) {
     auto state = tree[node_id].state;
     if (!tree[node_id].num_children()) continue;
@@ -822,6 +834,9 @@ std::array<double, 2> compute_exploitability2(const Game& game,
   }
   BRSolver solver(game, tree, /*value_net=*/nullptr);
   std::vector<double> values0, values1;
+  // TreeStrategy random_strategy = get_uniform_strategy(game, tree);
+  // solver.compute_br(/*traverser=*/0, random_strategy, beliefs, &values0);
+  // solver.compute_br(/*traverser=*/1, random_strategy, beliefs, &values1);
   solver.compute_br(/*traverser=*/0, strategy, beliefs, &values0);
   solver.compute_br(/*traverser=*/1, strategy, beliefs, &values1);
   return {vector_sum(values0) / values0.size(),

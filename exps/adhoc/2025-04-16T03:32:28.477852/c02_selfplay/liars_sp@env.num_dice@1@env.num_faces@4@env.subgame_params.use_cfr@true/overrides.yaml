@@ -1,4 +1,0 @@
-- env.num_dice=1
-- env.num_faces=4
-- env.subgame_params.use_cfr=true
-- job_id=adhoc/2025-04-16T03:32:28.477852/c02_selfplay/liars_sp@env.num_dice@1@env.num_faces@4@env.subgame_params.use_cfr@true

@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
 project(cfr)
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_CXX_FLAGS
   "${CMAKE_CXX_FLAGS} -I .. -Wall -Wextra -fPIC -Wfatal-errors -O3")
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-message(当前路径：${CMAKE_SOURCE_DIR})
+# message(当前路径：${CMAKE_SOURCE_DIR})
 # 查找 Python 相关包
 find_package(PythonInterp 3.7 REQUIRED)  # 查找 Python 解释器
 find_package(PythonLibs 3.7 REQUIRED)    # 查找 Python 库
